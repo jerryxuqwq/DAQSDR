@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import spectrogram
+from scipy.signal import ShortTimeFFT
 from sfcw import generate_sfcw  # Assuming this is a custom function for generating SFCW signals
 from MarkovChain import *
+from scipy.signal.windows import gaussian
 
 fs = 10e6            # 10 MHz sampling rate
 # f_start = 1e6        # 1 MHz start frequency
@@ -76,7 +77,7 @@ for s in path:
 
 
 # Add white Gaussian noise to the generated SFCW signal
-snr_db = 10  # desired SNR in dB; lower -> noisier
+snr_db = 80  # desired SNR in dB; lower -> noisier
 rng = np.random.default_rng(123)  # change or remove seed for non-deterministic noise
 sig_power = np.mean(np.abs(total_sfcw) ** 2)
 noise_power = sig_power / (10 ** (snr_db / 10.0))
@@ -84,28 +85,38 @@ noise_std = np.sqrt(noise_power)
 # Use real-valued noise since spectrogram uses the real part later
 noise = noise_std * rng.standard_normal(size=total_sfcw.shape)
 total_sfcw = total_sfcw + noise
-# Use real or complex? Spectrogram works on real-valued signals
-signal_real = np.real(total_sfcw)
 
-# Compute spectrogram
-f, t_spec, Sxx = spectrogram(
-    signal_real,
+# STFT parameters
+win_len = 1024
+hop = 512
+nfft = 1024
+w = gaussian(200, std=8, sym=True)  # symmetric Gaussian window
+# Create STFT object
+stft = ShortTimeFFT(
+    win=w,
+    hop=hop,
     fs=fs,
-    window='hann',
-    nperseg=1024,
-    noverlap=512,
-    scaling='density',
-    mode='magnitude'
+    fft_mode="centered"
+    #mfft=nfft
 )
+
+# Compute STFT (complex)
+Sxx = stft.stft(total_sfcw)   # shape: (freq, time)
+
+# Time & frequency axes
+t_spec = stft.t(len(total_sfcw))   # seconds
+f = stft.f                          # Hz
 
 # Plot
 plt.figure(figsize=(10, 5))
-plt.pcolormesh(
-    t_spec * 1e3,       # ms
-    f / 1e6,            # MHz
-    20 * np.log10(Sxx + 1e-12),
-    shading='auto'
+plt.imshow(
+    20 * np.log10(np.abs(Sxx) + 1e-12),
+    aspect='auto',
+    origin='lower',
+    #extent=[t_spec[0]*1e3, t_spec[-1]*1e3, f[0]*1e-6, f[-1]*1e-6],
+    cmap='viridis'
 )
+
 plt.xlabel("Time (ms)")
 plt.ylabel("Frequency (MHz)")
 plt.title("SFCW Spectrogram")
