@@ -37,14 +37,7 @@ s4 = State(
 )
 states = [idle, s1, s2, s3]
 
-P = [
-    [0.8, 0.1, 0.05, 0.05],   
-    [0.1, 0.6, 0.15, 0.15],  
-    [0.0, 0.3, 0.5, 0.2],
-    [0.0, 0.2, 0.2, 0.6]
-]
 
-mc = MarkovChain(states, P)
 
 import matplotlib.pyplot as plt
 
@@ -56,7 +49,14 @@ accuracies_std = []
 for n_steps in step_counts:
     accuracies_runs = []
     
-    for run in range(10):
+    for run in range(50):
+        P = [[np.random.random() for _ in range(len(states))] for _ in range(len(states))]
+        # Normalize rows to sum to 1
+        for i in range(len(states)):
+            row_sum = sum(P[i])
+            P[i] = [x / row_sum for x in P[i]]
+
+        mc = MarkovChain(states, P)
         path = mc.simulate(start_state=idle, n_steps=n_steps)
         transition_count = {}
         
@@ -95,5 +95,5 @@ plt.xlabel('Number of Steps')
 plt.ylabel('Accuracy')
 plt.title('Markov Chain Simulation Accuracy vs Steps')
 plt.grid(True)
-plt.xscale('log')
+#plt.xscale('log')
 plt.show()
