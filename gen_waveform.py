@@ -13,7 +13,7 @@ from MarkovChain import *
 # ============================================================
 
 fs = 10e6          # Sampling rate (Hz)
-snr_db = -10        # SNR (dB)
+snr_db = 0        # SNR (dB)
 rng = np.random.default_rng(123)
 
 # ============================================================
@@ -193,7 +193,7 @@ plt.plot(t_spec * 1e3, ridge_freq_s / 1e6, "r", linewidth=2)
 plt.xlabel("Time (ms)")
 plt.ylabel("Frequency (MHz)")
 plt.title("SFCW Spectrogram with Ridge Tracking")
-plt.colorbar(label="Magnitude (dB)")
+plt.colorbar(label="Magnitude (dB)") 
 plt.tight_layout()
 plt.show()
 
