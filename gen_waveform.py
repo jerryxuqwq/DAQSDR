@@ -7,6 +7,7 @@ from scipy.signal import medfilt
 
 from sfcw import generate_sfcw
 from MarkovChain import *
+from scipy.signal import find_peaks
 
 # ============================================================
 # PARAMETERS
@@ -124,6 +125,7 @@ f = stft.f
 ridge_idx = np.argmax(Sxx_mag, axis=0)
 ridge_freq = f[ridge_idx]          # Hz
 ridge_freq_s = medfilt(ridge_freq, kernel_size=9)
+ridge_freq_s_derivative = np.gradient(ridge_freq_s, t_spec)
 
 # ============================================================
 # SEGMENTATION BASED ON FREQUENCY JUMPS
@@ -135,7 +137,33 @@ df = np.abs(np.diff(ridge_freq_s))
 df_thresh = 5 * np.median(df)
 
 change_points = np.where(df > df_thresh)[0]
+# Find peaks in the filtered ridge frequency
 
+peaks, _ = find_peaks(ridge_freq_s, height=0)
+
+plt.figure(figsize=(12, 4))
+fig, ax1 = plt.subplots()
+
+# Plot ridge_freq_s (filtered) on the first y-axis
+ax1.plot(t_spec * 1e3, ridge_freq_s / 1e6, "r-", linewidth=2, label="ridge_freq_s (filtered)")
+ax1.set_xlabel("Time (ms)")
+ax1.set_ylabel("Frequency (MHz)")
+ax1.legend(loc='upper left')
+ax1.autoscale(enable=True, axis='y', tight=True)
+
+# Create a second y-axis for the derivative
+ax2 = ax1.twinx()
+ax2.plot(t_spec * 1e3, ridge_freq_s_derivative, "b-", linewidth=2, label="ridge_freq_s (derivative)")
+ax2.set_ylabel("Derivative")
+ax2.autoscale(enable=True, axis='y', tight=True)
+
+plt.scatter(t_spec[peaks] * 1e3, ridge_freq_s[peaks] / 1e6, color='g', marker='x', label='Peaks')
+plt.xlabel("Time (ms)")
+plt.ylabel("Frequency (MHz)")
+plt.title("Ridge Frequency: Raw vs Median Filtered")
+plt.grid()
+plt.tight_layout()
+plt.show()
 segments = np.split(np.arange(len(ridge_freq_s)), change_points + 1)
 
 # ============================================================
